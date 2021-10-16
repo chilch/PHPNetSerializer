@@ -23,6 +23,6 @@ namespace PhpSerializerNET {
 		/// </summary>
 		public bool NumericEnums { get; set; } = true;
 
-		internal static PhpSerializiationOptions DefaultOptions = new();
+		internal static PhpSerializiationOptions DefaultOptions = new PhpSerializiationOptions();
 	}
 }

@@ -53,8 +53,8 @@ namespace PhpSerializerNET.Test {
 
 		[TestMethod]
 		public void SerializeCircularList() {
-			List<object> listA = new() { "A", "B" };
-			List<object> listB = new() { "C", "D", listA };
+			List<object> listA = new List<object> { "A", "B" };
+			List<object> listB = new List<object> { "C", "D", listA };
 			listA.Add(listB);
 
 			Assert.AreEqual( // strings:

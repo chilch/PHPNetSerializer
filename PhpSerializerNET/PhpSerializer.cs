@@ -21,7 +21,7 @@ namespace PhpSerializerNET {
 		public PhpSerializer(PhpSerializiationOptions options = null) {
 			_options = options ?? PhpSerializiationOptions.DefaultOptions;
 
-			_seenObjects = new();
+			_seenObjects = new List<object>();
 		}
 
 		public string Serialize(object input) {
@@ -117,7 +117,7 @@ namespace PhpSerializerNET {
 						output.Append("}");
 						return output.ToString();
 					}
-				case DynamicObject:
+				case DynamicObject dynamicObject:
 					throw new System.NotSupportedException("Serialization of dynamic objects isn't supported yet.");
 				default: {
 						var inputType = input.GetType();
@@ -128,7 +128,7 @@ namespace PhpSerializerNET {
 						}
 
 						IEnumerable<MemberInfo> members = inputType.IsValueType
-							? inputType.GetFields().Where(y => y.IsPublic && y.GetCustomAttribute<PhpIgnoreAttribute>() == null)
+							? (IEnumerable<MemberInfo>) inputType.GetFields().Where(y => y.IsPublic && y.GetCustomAttribute<PhpIgnoreAttribute>() == null)
 							: inputType.GetProperties().Where(y => y.CanRead && y.GetCustomAttribute<PhpIgnoreAttribute>() == null);
 
 						output.Append($"a:{members.Count()}:");

@@ -92,6 +92,6 @@ namespace PhpSerializerNET {
 		/// </summary>
 		public bool EnableTypeLookup { get; set; } = true;
 
-		internal static PhpDeserializationOptions DefaultOptions = new();
+		internal static PhpDeserializationOptions DefaultOptions = new PhpDeserializationOptions();
 	}
 }

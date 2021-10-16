@@ -15,7 +15,8 @@ namespace PhpSerializerNET {
 	internal class PhpDeserializer {
 		private PhpDeserializationOptions _options;
 		private List<PhpSerializeToken> _tokens;
-		private static Dictionary<string, Type> TypeLookupCache = new(){
+		private static Dictionary<string, Type> TypeLookupCache = new Dictionary<string, Type>
+        {
 			{ "DateTime", typeof(PhpDateTime) }
 		};
 

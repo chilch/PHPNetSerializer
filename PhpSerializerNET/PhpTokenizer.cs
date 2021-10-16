@@ -106,7 +106,7 @@ namespace PhpSerializerNET {
 
 		internal List<PhpSerializeToken> Tokenize() {
 
-			List<PhpSerializeToken> tokens = new();
+			List<PhpSerializeToken> tokens = new List<PhpSerializeToken>();
 
 			for (; _position < _inputBytes.Length; _position++) {
 				if ((char)_inputBytes[_position] == '}') {

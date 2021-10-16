@@ -8,7 +8,7 @@ using System.Dynamic;
 
 namespace PhpSerializerNET {
 	public class PhpDynamicObject : DynamicObject, IPhpObject {
-		private PhpObjectDictionary _dictionary = new();
+		private PhpObjectDictionary _dictionary = new PhpObjectDictionary();
 
 		public PhpDynamicObject() { }
 
