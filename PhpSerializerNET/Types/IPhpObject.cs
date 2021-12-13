@@ -6,7 +6,7 @@
 
 namespace PhpSerializerNET {
 	[PhpClass()]
-	public interface IPhpObject  {
+	public interface IPhpObject {
 		/// <summary>
 		/// Get the class name that was specified in the serialization data of the object.
 		/// </summary>
@@ -20,6 +20,5 @@ namespace PhpSerializerNET {
 		/// </summary>
 		/// <param name="className">The class name.</param>
 		public void SetClassName(string className);
-
 	}
 }

@@ -7,30 +7,14 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace PhpSerializerNET.Test {
+namespace PhpSerializerNET.Test.Deserialize {
 	[TestClass]
-	public class TestIntegers {
-		[TestMethod]
-		public void SerializeZero() {
-			Assert.AreEqual(
-				"i:0;",
-				PhpSerialization.Serialize(0)
-			);
-		}
-
+	public class IntegerDeserializationTest {
 		[TestMethod]
 		public void DeserializeZero() {
 			Assert.AreEqual(
 				0,
 				PhpSerialization.Deserialize<int>("i:0;")
-			);
-		}
-
-		[TestMethod]
-		public void SerializeOne() {
-			Assert.AreEqual(
-				"i:1;",
-				PhpSerialization.Serialize(1)
 			);
 		}
 
@@ -43,26 +27,10 @@ namespace PhpSerializerNET.Test {
 		}
 
 		[TestMethod]
-		public void SerializeIntMaxValue() {
-			Assert.AreEqual(
-				"i:2147483647;",
-				PhpSerialization.Serialize(int.MaxValue)
-			);
-		}
-
-		[TestMethod]
 		public void DeserializeIntMaxValue() {
 			Assert.AreEqual(
 				int.MaxValue,
 				PhpSerialization.Deserialize<int>("i:2147483647;")
-			);
-		}
-
-		[TestMethod]
-		public void SerializeIntMinValue() {
-			Assert.AreEqual(
-				"i:-2147483648;",
-				PhpSerialization.Serialize(int.MinValue)
 			);
 		}
 
@@ -73,5 +41,17 @@ namespace PhpSerializerNET.Test {
 				PhpSerialization.Deserialize<int>("i:-2147483648;")
 			);
 		}
+
+		[TestMethod]
+		public void ExplictCastFormatException() {
+			var ex = Assert.ThrowsException<PhpSerializerNET.DeserializationException>( () => 
+				PhpSerialization.Deserialize<int>(
+					"s:3:\"1b1\";"
+				)
+			);
+			Assert.IsInstanceOfType(ex.InnerException, typeof(System.FormatException));
+			Assert.AreEqual("Exception encountered while trying to assign '1b1' to type Int32. See inner exception for details.", ex.Message);
+		}
+
 	}
 }

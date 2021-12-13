@@ -4,20 +4,25 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+  - main
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: "sdk"
+      version: "6.x"
+
   - task: DotNetCoreCLI@2
     inputs:
-      command: 'test'
-      projects: '**/*Test.csproj'
+      command: "test"
+      projects: "**/*Test.csproj"
       publishTestResults: true
       arguments: --collect "XPlat Code coverage"
-  
+
   - task: PublishCodeCoverageResults@1
     inputs:
-      codeCoverageTool: 'Cobertura'
-      summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+      codeCoverageTool: "Cobertura"
+      summaryFileLocation: "$(Agent.TempDirectory)/**/coverage.cobertura.xml"

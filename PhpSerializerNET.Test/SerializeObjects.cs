@@ -6,31 +6,21 @@
 
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PhpSerializerNET.Test.DataTypes;
 
 namespace PhpSerializerNET.Test {
 	[TestClass]
 	public class SerializeObjects {
-		public class MappedClass {
-			[PhpProperty("en")]
-			public string English { get; set; }
-
-			[PhpProperty("de")]
-			public string German { get; set; }
-
-			[PhpIgnore]
-			public string it { get; set; }
-		}
-
 		[TestMethod]
-		public void DeserializesObjectWithMappingInfo() {
+		public void ExplicitToClassWithMappingAttributes() {
 			var testObject = new MappedClass() {
 				English = "Hello world!",
 				German = "Hallo Welt!",
-				it = "Ciao mondo!"
+				It = "Ciao mondo!"
 			};
 
 			Assert.AreEqual(
-				"a:2:{s:2:\"en\";s:12:\"Hello world!\";s:2:\"de\";s:11:\"Hallo Welt!\";}",
+				"a:3:{s:2:\"en\";s:12:\"Hello world!\";s:2:\"de\";s:11:\"Hallo Welt!\";s:4:\"Guid\";a:1:{s:5:\"Empty\";N;}}",
 				PhpSerialization.Serialize(testObject)
 			);
 		}

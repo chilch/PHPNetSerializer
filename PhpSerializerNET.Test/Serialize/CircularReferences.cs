@@ -8,9 +8,9 @@ using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace PhpSerializerNET.Test {
+namespace PhpSerializerNET.Test.Serialize {
 	[TestClass]
-	public class TestCircularReferences {
+	public class CircularReferencesTest {
 		private class CircularClass {
 			public string Foo { get; set; }
 			public CircularClass Bar { get; set; }

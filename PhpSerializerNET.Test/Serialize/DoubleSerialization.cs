@@ -6,10 +6,9 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace PhpSerializerNET.Test {
+namespace PhpSerializerNET.Test.Serialize {
 	[TestClass]
-
-	public class TestDoubles {
+	public class DoubleSerializationTest {
 		[TestMethod]
 		public void SerializesDecimalValue() {
 			Assert.AreEqual(

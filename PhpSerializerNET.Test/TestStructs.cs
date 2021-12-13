@@ -6,102 +6,25 @@
 **/
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PhpSerializerNET.Test.DataTypes;
 
 namespace PhpSerializerNET.Test {
-	public struct MyStruct {
-		public string foo;
-		public string bar;
-	}
-
-	public struct MyStructIgnoreBar {
-		public string foo;
-		[PhpIgnore]
-		public string bar;
-	}
-
-	public struct MyStructRenamedBar {
-		public string foo;
-		[PhpProperty("foobar")]
-		public string bar;
-	}
-
 
 	[TestClass]
 	public class TestStructs {
-
-
 		[TestMethod]
 		public void SerializeStruct() {
 			Assert.AreEqual(
 				"a:2:{s:3:\"foo\";s:3:\"Foo\";s:3:\"bar\";s:3:\"Bar\";}",
 				PhpSerialization.Serialize(
-					new MyStruct() { foo = "Foo", bar = "Bar" }
+					new AStruct() { foo = "Foo", bar = "Bar" }
 				)
 			);
 		}
 
 		[TestMethod]
-		public void DeserializeArrayToStruct() {
-			var value = PhpSerialization.Deserialize<MyStruct>(
-				"a:2:{s:3:\"foo\";s:3:\"Foo\";s:3:\"bar\";s:3:\"Bar\";}"
-			);
-
-			Assert.AreEqual(
-				"Foo",
-				value.foo
-			);
-			Assert.AreEqual(
-				"Bar",
-				value.bar
-			);
-		}
-
-		[TestMethod]
-		public void DeserializeStructWithExcessKeys() {
-			var value = PhpSerialization.Deserialize<MyStruct>(
-				"a:3:{s:3:\"foo\";s:3:\"Foo\";s:3:\"bar\";s:3:\"Bar\";s:6:\"foobar\";s:6:\"FooBar\";}",
-				new PhpDeserializationOptions() { AllowExcessKeys = true }
-			);
-
-			Assert.AreEqual(
-				"Foo",
-				value.foo
-			);
-			Assert.AreEqual(
-				"Bar",
-				value.bar
-			);
-		}
-
-		[TestMethod]
-		public void ThrowsOnStructWithExcessKeys() {
-			var ex = Assert.ThrowsException<DeserializationException>(() => PhpSerialization.Deserialize<MyStruct>(
-				"a:3:{s:3:\"foo\";s:3:\"Foo\";s:3:\"bar\";s:3:\"Bar\";s:6:\"foobar\";s:6:\"FooBar\";}",
-				new PhpDeserializationOptions() { AllowExcessKeys = false }
-			));
-			Assert.AreEqual("Could not bind the key \"foobar\" to struct of type MyStruct: No such field.", ex.Message);
-		}
-
-		[TestMethod]
-		public void DeserializeStructCaseInsensitive() {
-			var value = PhpSerialization.Deserialize<MyStruct>(
-				"a:2:{s:3:\"FOO\";s:3:\"Foo\";s:3:\"BAR\";s:3:\"Bar\";}",
-				new PhpDeserializationOptions() { CaseSensitiveProperties = false }
-			);
-
-			Assert.AreEqual(
-				"Foo",
-				value.foo
-			);
-			Assert.AreEqual(
-				"Bar",
-				value.bar
-			);
-		}
-
-		[TestMethod]
 		public void DeserializeIgnoreField() {
-			var value = PhpSerialization.Deserialize<MyStructIgnoreBar>(
+			var value = PhpSerialization.Deserialize<AStructWithIgnore>(
 				"a:2:{s:3:\"foo\";s:3:\"Foo\";s:3:\"bar\";s:3:\"Bar\";}"
 			);
 			Assert.AreEqual(
@@ -116,7 +39,7 @@ namespace PhpSerializerNET.Test {
 
 		[TestMethod]
 		public void DeserializePropertyName() {
-			var value = PhpSerialization.Deserialize<MyStructRenamedBar>(
+			var value = PhpSerialization.Deserialize<AStructWithRename>(
 				"a:2:{s:3:\"foo\";s:3:\"Foo\";s:6:\"foobar\";s:3:\"Bar\";}"
 			);
 			Assert.AreEqual(
@@ -132,13 +55,13 @@ namespace PhpSerializerNET.Test {
 		[TestMethod]
 		public void DeserializeBoolToStruct() {
 			var ex = Assert.ThrowsException<DeserializationException>(
-				() => PhpSerialization.Deserialize<MyStruct>(
+				() => PhpSerialization.Deserialize<AStruct>(
 					"b:1;"
 				)
 			);
 
 			Assert.AreEqual(
-				"Can not assign value \"1\" (at position 0) to target type of MyStruct.",
+				"Can not assign value \"1\" (at position 0) to target type of AStruct.",
 				ex.Message
 			);
 		}
@@ -146,13 +69,13 @@ namespace PhpSerializerNET.Test {
 		[TestMethod]
 		public void DeserializeStringToStruct() {
 			var ex = Assert.ThrowsException<DeserializationException>(
-				() => PhpSerialization.Deserialize<MyStruct>(
+				() => PhpSerialization.Deserialize<AStruct>(
 					"s:3:\"foo\";"
 				)
 			);
 
 			Assert.AreEqual(
-				"Can not assign value \"foo\" (at position 0) to target type of MyStruct.",
+				"Can not assign value \"foo\" (at position 0) to target type of AStruct.",
 				ex.Message
 			);
 		}
@@ -160,8 +83,8 @@ namespace PhpSerializerNET.Test {
 		[TestMethod]
 		public void DeserializeNullToStruct() {
 			Assert.AreEqual(
-				default(MyStruct),
-				PhpSerialization.Deserialize<MyStruct>(
+				default,
+				PhpSerialization.Deserialize<AStruct>(
 					"N;"
 				)
 			);

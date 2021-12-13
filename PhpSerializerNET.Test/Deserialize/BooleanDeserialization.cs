@@ -7,17 +7,9 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace PhpSerializerNET.Test {
+namespace PhpSerializerNET.Test.Deserialize {
 	[TestClass]
-	public class TestBools {
-		[TestMethod]
-		public void SerializesTrue() {
-			Assert.AreEqual(
-				"b:1;",
-				PhpSerialization.Serialize(true)
-			);
-		}
-
+	public class DeserializeBooleansTest {
 		[TestMethod]
 		public void DeserializesTrue() {
 			Assert.AreEqual(
@@ -36,14 +28,6 @@ namespace PhpSerializerNET.Test {
 		}
 
 		[TestMethod]
-		public void SerializesFalse() {
-			Assert.AreEqual(
-				"b:0;",
-				PhpSerialization.Serialize(false)
-			);
-		}
-
-		[TestMethod]
 		public void DeserializesFalse() {
 			Assert.AreEqual(
 				false,
@@ -57,6 +41,28 @@ namespace PhpSerializerNET.Test {
 				false,
 				PhpSerialization.Deserialize<bool>("b:0;")
 			);
+		}
+
+		[TestMethod]
+		public void DeserializesToLong() {
+			var result = PhpSerialization.Deserialize<long>("b:0;");
+
+			Assert.AreEqual(0, result);
+
+			result = PhpSerialization.Deserialize<long>("b:1;");
+
+			Assert.AreEqual(1, result);
+		}
+
+		[TestMethod]
+		public void DeserializesToString() {
+			var result = PhpSerialization.Deserialize<string>("b:0;");
+
+			Assert.AreEqual("False", result);
+
+			result = PhpSerialization.Deserialize<string>("b:1;");
+
+			Assert.AreEqual("True", result);
 		}
 	}
 }
