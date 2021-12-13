@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Title>PhpSerializerNET</Title>
-		<TargetFramework>net5.0</TargetFramework>
-		<Version>0.7.0</Version>
+		<Version>0.9.0</Version>
+		<TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
 		<Authors>StringEpsilon</Authors>
 		<Summary>A library for working with the PHP serialization format.</Summary>
 		<PackageTags>php-serialization, php-serializer, php-deserializer</PackageTags>
@@ -14,8 +14,9 @@
 		<PackageProjectUrl>https://github.com/StringEpsilon/PhpSerializerNET</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/StringEpsilon/PhpSerializerNET</RepositoryUrl>
 		<RespositoryType>git</RespositoryType>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 	</PropertyGroup>
 	<ItemGroup>
-		<None Include="..\LICENSE" Pack="true" PackagePath="/"/>
+		<None Include="..\LICENSE" Pack="true" PackagePath="/" />
 	</ItemGroup>
 </Project>

@@ -1,3 +1,63 @@
+# 0.10.0 (future):
+
+## Breaking:
+- Trying to set the classname on PhpDateTime will throw an exception now instead of doing nothing.
+
+
+## Regular changes:
+- Added `PhpSerializerNET.ClearTypeCache()`
+- Added `TypeCache` deserialization option
+	- Allows to *disable* the classname type cache. (enabled by default)
+	- Allows to *enable* a property information cache. (disabled by default)
+- Added `PhpSerializerNET.ClearPropertyInfoCache()`
+
+
+# 0.9.0:
+
+## Breaking:
+- Targeting net6.0
+
+## Semi breaking:
+- Type lookup: Now negative lookup results are also cached.
+	- This may also lead to undeseriable results when adding classes and structs at runtime.
+	- May increase the memory footprint over time faster than before.
+	- On the upside: It is significantly faster when dealing with objects where automapping doesn't work without having to disable the feature entirely.
+- Different exception (System.ArgumentException) on empty input for `PhpSerialization.Deserialize<T>()`
+
+## Regular changes
+
+- Rewrote the parsing and validation logic, which results in different exception messages in many cases.
+- Parsing: A very slight performance gain for some deserialization workloads.
+- Object / struct creation: Improved performance.
+- General: Reduced amount of memory allocated while deserializing.
+- Fixed exception message for non-integer keys in lists.
+- Fixed exception message for failed field / property assignments / binding.
+
+# 0.8.0:
+- Improved performance of the validation step of deserialization.
+- Sped up deserializing into explicit types (particularly structs and classes) significantly.
+- Sped up serialization, especially when using attribute annotated classes and structs.
+- Improved exception messages on malformed inputs when deserializing.
+- Cleaner exception when trying to deserialize into incompatible types (i.e. "a" to int32.).
+
+# 0.7.4:
+- Improved deserialization performance.
+- Fixed invalid output when using PhpSerializiationOptions.NumericEnums = false
+
+# 0.7.3:
+- Fixed an issue with empty string deserialization, caused by the `EmptyStringToDefault` code in 0.7.2.
+
+# 0.7.2:
+- Added `EmptyStringToDefault` deserialization option, defaults to true.
+	- When true, empty strings will be deserialized into the default value of the target IConvertible.
+	  For example `s:0:"";` deserialized to an integer yields `0`.
+	See issue #13 for details.
+- Fixed a regression introduced in 0.7.1 where some data would no longer parse correctly (#12) due to improper handling of array brackets.
+
+# 0.7.1:
+- Fixed issue with nested array / object validation (issue #11)
+- Added support for System.Guid (issue #10)
+
 # 0.7.0:
 - Support de/serialization of enums
 - Added serialization option `NumericEnums`:
@@ -12,7 +72,7 @@
 	- This replaces `IDictionary<string, object>` as the default deserialization target of objects.
 - Added public class PhpDynamicObject (implementing IPhpObject)
 - Added PhpDateTime to avoid conflicts with System.DateTime.
- 
+
 With IPhpObjects, you can get the class name specified in the serialized data via `GetClassName()`.
 
 **Known issues:**

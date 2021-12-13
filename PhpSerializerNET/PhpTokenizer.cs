@@ -4,234 +4,254 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 **/
 
-using System;
-using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace PhpSerializerNET {
 	public class PhpTokenizer {
-		private string _input;
-		private byte[] _inputBytes;
+
 		private int _position;
-		private PhpDeserializationOptions _options;
+		private readonly Encoding _inputEncoding;
 
-		public PhpTokenizer(string input, PhpDeserializationOptions options) {
-			this._input = input;
+		private readonly byte[] _input;
+		private readonly int _lastIndex;
+
+		public PhpTokenizer(string input, Encoding inputEncoding) {
+			this._inputEncoding = inputEncoding;
+			this._input = Encoding.Convert(
+				Encoding.Default,
+				this._inputEncoding,
+				Encoding.Default.GetBytes(input)
+			);
 			this._position = 0;
-			this._options = options;
-			int position = 0;
-			this.ValidateFormat(ref position);
-			this._inputBytes = Encoding.Convert(Encoding.Default, options.InputEncoding, Encoding.Default.GetBytes(input));
+			this._lastIndex = this._input.Length - 1;
 		}
 
-		internal bool ValidateFormat(ref int position, bool inArray = false) {
-			for (; position < _input.Length; position++) {
-				switch (_input[position]) {
-					case 'N': {
-							var match = new Regex(@"N;").Match(_input, position);
-							if (!match.Success || match.Index != position) {
-								throw new DeserializationException($"Malformed null at position {position}");
-							}
-							position += match.Length - 1;
-							break;
-						}
-					case 'b': {
-							var match = new Regex(@"b:[10];").Match(_input, position);
-							if (!match.Success || match.Index != position) {
-								throw new DeserializationException($"Malformed boolean at position {position}");
-							}
-							position += match.Length - 1;
-							break;
-						}
-					case 'i': {
-							var match = new Regex(@"i:[+-]?\d+;").Match(_input, position);
-							if (!match.Success || match.Index != position) {
-								throw new DeserializationException($"Malformed integer at position {position}");
-							}
-							position += match.Length - 1;
-							break;
-						}
-					case 'd': {
-							// Validate the correctness of the actual value in the proper parsing step:
-							var match = new Regex(@"d:.+;").Match(_input, position);
-							if (!match.Success || match.Index != position) {
-								throw new DeserializationException($"Malformed double at position {position}");
-							}
-							position += match.Length - 1;
-							break;
-						}
-					case 's': {
-							var match = new Regex(@"s:\d+:"".*?"";").Match(_input, position);
-							if (!match.Success) {
-								throw new DeserializationException($"Malformed string at position {position}");
-							}
-							position += match.Length - 1;
-							break;
-						}
-					case 'a': {
-							var match = new Regex(@"a:\d+:{").Match(_input, position);
-							if (!match.Success || match.Index != position) {
-								throw new DeserializationException($"Malformed array at position {position}");
-							}
-							position += match.Length;
-							ValidateFormat(ref position, true);
+		private void CheckBounds(string expectation) {
+			if (this._lastIndex < this._position) {
+				throw new DeserializationException(
+					$"Unexpected end of input. Expected '{expectation}' at index {this._position}, but input ends at index {this._lastIndex}"
+				);
+			}
+		}
 
-							break;
-						}
-					case 'O': {
-							var match = new Regex(@"O:\d+:""[a-zA-Z_\\\-0-9]+"":\d+:{").Match(_input, position);
-							if (!match.Success || match.Index != position) {
-								throw new DeserializationException($"Malformed object at position {position}");
-							}
-							position += match.Length;
-							ValidateFormat(ref position, true);
+		private void CheckBounds(char expectation) {
+			if (this._lastIndex < this._position) {
+				throw new DeserializationException(
+					$"Unexpected end of input. Expected '{expectation}' at index {this._position}, but input ends at index {this._lastIndex}"
+				);
+			}
+		}
 
-							break;
+		private PhpSerializerType GetDataType() {
+			var result = (char)this._input[this._position] switch {
+				'N' => PhpSerializerType.Null,
+				'b' => PhpSerializerType.Boolean,
+				's' => PhpSerializerType.String,
+				'i' => PhpSerializerType.Integer,
+				'd' => PhpSerializerType.Floating,
+				'a' => PhpSerializerType.Array,
+				'O' => PhpSerializerType.Object,
+				_ => throw new DeserializationException($"Unexpected token '{(char)this._input[this._position]}' at position {this._position}.")
+			};
+			this._position++;
+			return result;
+		}
+
+		private void GetCharacter(char character) {
+			this.CheckBounds(character);
+			if (this._input[this._position] != character) {
+				throw new DeserializationException(
+					$"Unexpected token at index {this._position}. Expected '{character}' but found '{(char)this._input[this._position]}' instead."
+				);
+			}
+			this._position++;
+		}
+
+		private void GetTerminator() {
+			this.GetCharacter(';');
+		}
+
+		List<PhpSerializeToken> tokens = new List<PhpSerializeToken>();
+		private void GetDelimiter() {
+			this.GetCharacter(':');
+		}
+
+		private string GetNumbers(bool isFloating) {
+			bool valid = true;
+			int start = this._position;
+			int end = this._position;
+
+			for (; this._input[this._position] != ';' && this._position < this._lastIndex && valid; this._position++) {
+				valid = (char)this._input[this._position] switch {
+					>= '0' and <= '9' => true,
+					'+' => true,
+					'-' => true,
+					'.' => isFloating,
+					'E' or 'e' => isFloating, // exponents.
+					'I' or 'N' or 'F' => isFloating, // infinity.
+					'N' or 'A' => isFloating, // NaN.
+					_ => false,
+				};
+				if (!valid) {
+					throw new DeserializationException(
+						$"Unexpected token at index {this._position}. " +
+						$"'{(char)this._input[this._position]}' is not a valid part of a {(isFloating ? "floating point " : "")}number."
+					);
+				}
+				end++;
+			}
+
+			this._position = end;
+
+			// Edgecase: input ends here without a delimeter following. Normal handling would give a misleading exception:
+			if (this._lastIndex == this._position && (char)this._input[this._position] != ';') {
+				throw new DeserializationException(
+					$"Unexpected end of input. Expected ':' at index {this._position}, but input ends at index {this._lastIndex}"
+				);
+			}
+			return this._input.Utf8Substring(start, end - start, this._inputEncoding);
+		}
+
+
+		private int GetLength(PhpSerializerType dataType) {
+			bool valid = true;
+			int length = 0;
+
+			for (; this._input[this._position] != ':' && this._position < this._lastIndex && valid; this._position++) {
+				length = (char)this._input[this._position] switch {
+					>= '0' and <= '9' => length * 10 + (this._input[this._position] - 48),
+					_ => throw new DeserializationException(
+						$"{dataType} at position {this._position} has illegal, missing or malformed length."
+					),
+				};
+			}
+			return length;
+		}
+
+		private string GetBoolean() {
+			this.CheckBounds("0' or '1");
+
+			string result = (char)this._input[this._position] switch {
+				'1' => "1",
+				'0' => "0",
+				_ => throw new DeserializationException(
+					$"Unexpected token in boolean at index {this._position}. Expected either '1' or '0', but found '{(char)this._input[this._position]}' instead."
+				)
+			};
+			this._position++;
+			return result;
+		}
+
+		private void GetBracketClose() {
+			this.GetCharacter('}');
+		}
+
+		private void GetBracketOpen() {
+			this.GetCharacter('{');
+		}
+
+		private string GetNCharacters(int length) {
+			if (this._position + length > this._lastIndex) {
+				throw new DeserializationException(
+					$"Illegal length of {length}. The string at position {this._position} points to out of bounds index {this._position + length}."
+				);
+			}
+			int start = this._position;
+			this._position += length;
+			return this._input.Utf8Substring(start, length, this._inputEncoding);
+		}
+
+		internal PhpSerializeToken GetToken() {
+			var result = new PhpSerializeToken {
+				Position = this._position,
+				Type = this.GetDataType()
+			};
+			switch (result.Type) {
+				case PhpSerializerType.Boolean: {
+						this.GetDelimiter();
+						result.Value = this.GetBoolean();
+						this.GetTerminator();
+						break;
 					}
-					case '}': {
-							if (inArray) {
-								return true;
-							} else {
-								throw new DeserializationException($"Unexpected token '{_input[position]}' at position {position}.");
-							}
+				case PhpSerializerType.Null: {
+						this.GetTerminator();
+						break;
+					}
+				case PhpSerializerType.String: {
+						this.GetDelimiter();
+						int length = this.GetLength(result.Type);
+						this.GetDelimiter();
+						this.GetCharacter('"');
+						result.Value = this.GetNCharacters(length);
+						this.GetCharacter('"');
+						this.GetTerminator();
+						break;
+					}
+				case PhpSerializerType.Integer: {
+						this.GetDelimiter();
+						result.Value = this.GetNumbers(false);
+						this.GetTerminator();
+						break;
+					}
+				case PhpSerializerType.Floating: {
+						this.GetDelimiter();
+						result.Value = this.GetNumbers(true);
+						this.GetTerminator();
+						break;
+					}
+				case PhpSerializerType.Array: {
+						this.GetDelimiter();
+						int length = this.GetLength(result.Type);
+						this.GetDelimiter();
+						this.GetBracketOpen();
+						result.Children = new(length * 2);
+						while (this._input[this._position] != '}') {
+							result.Children.Add(this.GetToken());
 						}
-					default: {
-							throw new DeserializationException($"Unexpected token '{_input[position]}' at position {position}.");
+						this.GetBracketClose();
+						if (length * 2 != result.Children.Count) {
+							throw new DeserializationException(
+								$"Array at position {result.Position} should be of length {length}, " +
+								$"but actual length is {result.Children.Count / 2}."
+							);
 						}
-				}
+						break;
+					}
+				case PhpSerializerType.Object: {
+						this.GetDelimiter();
+						int classNamelength = this.GetLength(result.Type);
+						this.GetDelimiter();
+						this.GetCharacter('"');
+						result.Value = this.GetNCharacters(classNamelength);
+						this.GetCharacter('"');
+						this.GetDelimiter();
+						int propertyCount = this.GetLength(result.Type);
+						this.GetDelimiter();
+						this.GetBracketOpen();
+						result.Children = new(propertyCount * 2);
+						while (this._input[this._position] != '}') {
+							result.Children.Add(this.GetToken());
+						}
+						this.GetBracketClose();
+
+						if (propertyCount * 2 != result.Children.Count) {
+							throw new DeserializationException(
+								$"Object at position {result.Position} should have {propertyCount} properties, " +
+								$"but actually has {result.Children.Count / 2} properties."
+							);
+						}
+						break;
+					}
 			}
-			return true;
+			return result;
 		}
 
-		internal List<PhpSerializeToken> Tokenize() {
-
-			List<PhpSerializeToken> tokens = new();
-
-			for (; _position < _inputBytes.Length; _position++) {
-				if ((char)_inputBytes[_position] == '}') {
-					return tokens;
-				}
-				if (_inputBytes.Length - 1 <= _position) {
-					throw new DeserializationException($"Unexpected end of data at position { _position + 1}");
-				}
-				switch ((char)_inputBytes[_position]) {
-					case 'N': {
-							tokens.Add(new PhpSerializeToken() { Type = PhpSerializerType.Null });
-							_position++;
-							break;
-						}
-					case 'b':
-					case 'i':
-					case 'd': {
-							var tokenClose = Array.IndexOf(_inputBytes, (byte)';', _position + 1);
-							var token = new PhpSerializeToken() {
-								Type = (char)_inputBytes[_position] switch {
-									'b' => PhpSerializerType.Boolean,
-									'i' => PhpSerializerType.Integer,
-									'd' => PhpSerializerType.Floating,
-									_ => throw new Exception("This branch should be impossible to hit.")
-								},
-								Value = _inputBytes.Utf8Substring(
-									_position + 2,
-									tokenClose - (_position + 2),
-									_options.InputEncoding
-								)
-							};
-							tokens.Add(token);
-							_position = tokenClose;
-							break;
-						}
-					case 's': {
-							var lengthStart = _position + 2;
-							var lengthClose = Array.IndexOf(_inputBytes, (byte)':', lengthStart + 1);
-							var valueStart = Array.IndexOf(_inputBytes, (byte)'"', lengthClose) + 1;
-
-							var length = int.Parse(
-								_inputBytes.Utf8Substring(
-									lengthStart,
-									lengthClose - lengthStart,
-									_options.InputEncoding
-								)
-							);
-
-							var value = _inputBytes.Utf8Substring(
-								valueStart,
-								length,
-								_options.InputEncoding
-							);
-
-							if (valueStart + length >= _inputBytes.Length) {
-								throw new DeserializationException(
-									$"Unexpected end of data at position. The string at position {_position} pointed to out of bounds index {valueStart + length}."
-								);
-							}
-							if (_inputBytes[valueStart + length] != '"') {
-								throw new DeserializationException(
-									$"String at position {_position} has an incorrect length."
-								);
-							}
-
-							tokens.Add(new PhpSerializeToken() {
-								Type = PhpSerializerType.String,
-								Length = length,
-								Value = _inputBytes.Utf8Substring(valueStart, length, _options.InputEncoding)
-							});
-							_position = valueStart + length + 1;
-							break;
-						}
-					case 'O': {
-							var typeLenghtStart = _position + 2;
-							var typeLengthClose = Array.IndexOf(_inputBytes, (byte)':', typeLenghtStart + 1);
-							var typeLength = int.Parse(
-								_inputBytes.Utf8Substring(typeLenghtStart, typeLengthClose - typeLenghtStart, _options.InputEncoding)
-							);
-							_position = typeLengthClose;
-
-							var typename = _inputBytes.Utf8Substring(_position+2, typeLength, _options.InputEncoding);
-							_position += typeLength +2;
-
-							var lengthStart = _position + 2;
-							var lengthClose = Array.IndexOf(_inputBytes, (byte)':', lengthStart + 1);
-							var length = int.Parse(
-								_inputBytes.Utf8Substring(lengthStart, lengthClose - lengthStart, _options.InputEncoding)
-							);
-
-							var objectToken = new PhpSerializeToken() {
-								Type = PhpSerializerType.Object,
-								Position = _position,
-								Value = typename,
-								Length = length,
-								Children = this.Tokenize()
-							};
-							tokens.Add(objectToken);
-							break;
-						}
-					case 'a': {
-							var lengthStart = _position + 2;
-							var lengthClose = Array.IndexOf(_inputBytes, (byte)':', lengthStart + 1);
-							var length = int.Parse(
-								_inputBytes.Utf8Substring(lengthStart, lengthClose - lengthStart, _options.InputEncoding)
-							);
-
-							_position = Array.IndexOf(_inputBytes, (byte)'{', lengthStart + 1) + 1;
-							var arrayToken = new PhpSerializeToken() {
-								Type = PhpSerializerType.Array,
-								Position = _position,
-								Length = length,
-								Children = this.Tokenize()
-							};
-							if (arrayToken.Length != arrayToken.Children.Count / 2) {
-								throw new DeserializationException(
-									$"Array at position {arrayToken.Position} should be of length {arrayToken.Length}, but actual length is {arrayToken.Children.Count / 2}."
-								);
-							}
-							tokens.Add(arrayToken);
-							break;
-						}
-				}
+		internal PhpSerializeToken Tokenize() {
+			var result = this.GetToken();
+			if (this._position <= this._lastIndex) {
+				throw new DeserializationException($"Unexpected token '{(char)this._input[this._position]}' at position {this._position}.");
 			}
-			return tokens;
+			return result;
 		}
 	}
 }

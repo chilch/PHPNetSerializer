@@ -5,19 +5,12 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 **/
 
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PhpSerializerNET;
 
-namespace PhpSerializerNET.Test {
+namespace PhpSerializerNET.Test.Deserialize {
 	[TestClass]
-	public class TestStrings {
-		[TestMethod]
-		public void DeserializesNull() {
-			var result = PhpSerialization.Deserialize<string>("N;");
-
-			Assert.IsNull(result);
-		}
-
+	public class StringDeserializationTest {
 		[TestMethod]
 		public void SerializeHelloWorld() {
 			Assert.AreEqual(
@@ -25,29 +18,14 @@ namespace PhpSerializerNET.Test {
 				PhpSerialization.Serialize("Hello World!")
 			);
 		}
-
+		
 		[TestMethod]
-		public void SerializeEmptyString() {
+		public void DeserializeEmptyStringExplicit() {
 			Assert.AreEqual(
-				"s:0:\"\";",
-				PhpSerialization.Serialize("")
+				"",
+				PhpSerialization.Deserialize<string>("s:0:\"\";")
 			);
 		}
-		[TestMethod]
-		public void SerializeUmlauts() {
-			Assert.AreEqual(
-				"s:14:\"äöüßÄÖÜ\";",
-				PhpSerialization.Serialize("äöüßÄÖÜ")
-			);
-		}
-		[TestMethod]
-		public void SerializeEmoji() {
-			Assert.AreEqual(
-				"s:4:\"👻\";",
-				PhpSerialization.Serialize("👻")
-			);
-		}
-
 
 		[TestMethod]
 		public void DeserializeHelloWorld() {
@@ -91,20 +69,9 @@ namespace PhpSerializerNET.Test {
 		}
 
 		[TestMethod]
-		public void DeserializeStringToBool() {
-			var options = new PhpDeserializationOptions() { NumberStringToBool = true };
-
-			var value = PhpSerialization.Deserialize<bool>("s:1:\"1\";", options);
-			Assert.AreEqual(true, value);
-
-			value = PhpSerialization.Deserialize<bool>("s:1:\"0\";", options);
-			Assert.AreEqual(false, value);
-
-			value = (bool)PhpSerialization.Deserialize("s:1:\"1\";", options);
-			Assert.AreEqual(true, value);
-
-			value = (bool)PhpSerialization.Deserialize("s:1:\"0\";", options);
-			Assert.AreEqual(false, value);
+		public void ExplicitToGuid() {
+			Guid guid = PhpSerialization.Deserialize<Guid>("s:36:\"82e2ebf0-43e6-4c10-82cf-57d60383a6be\";");
+			Assert.AreEqual("82e2ebf0-43e6-4c10-82cf-57d60383a6be", guid.ToString());
 		}
 	}
 }

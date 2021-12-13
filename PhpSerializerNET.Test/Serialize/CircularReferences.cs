@@ -8,9 +8,9 @@ using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace PhpSerializerNET.Test {
+namespace PhpSerializerNET.Test.Serialize {
 	[TestClass]
-	public class TestCircularReferences {
+	public class CircularReferencesTest {
 		private class CircularClass {
 			public string Foo { get; set; }
 			public CircularClass Bar { get; set; }
@@ -53,8 +53,8 @@ namespace PhpSerializerNET.Test {
 
 		[TestMethod]
 		public void SerializeCircularList() {
-			List<object> listA = new() { "A", "B" };
-			List<object> listB = new() { "C", "D", listA };
+			List<object> listA = new List<object> { "A", "B" };
+			List<object> listB = new List<object> { "C", "D", listA };
 			listA.Add(listB);
 
 			Assert.AreEqual( // strings:
